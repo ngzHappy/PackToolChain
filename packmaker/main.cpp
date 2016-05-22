@@ -165,11 +165,20 @@ static void update_hpp_files(
 ) {
 
     std::vector<std::string> allNeedUpdataHpp=find_all_pack_hpp(argDir);
-    std::map<std::string,std::int32_t> type_index;
 
+    class ClassInfo {
+    public:
+        std::int32_t offsetOfPack;
+        std::string namespaceOfClass;
+        std::set<std::pair<std::string,std::string>> superClasses;
+        ClassInfo(std::int32_t offset_):offsetOfPack(offset_) {}
+        ClassInfo() {}
+    };
+
+    std::map<std::string,ClassInfo> type_index;
+    
     if (allNeedUpdataHpp.empty()) { return; }
 
-    /*make class names*/
     for (const auto & i:allNeedUpdataHpp) {
 
         auto pos_=i.find_last_of(u8R"(/\)");
@@ -180,6 +189,7 @@ static void update_hpp_files(
 
         if (varClassName.empty()) { continue; }
 
+        /*make class names*/
         {
             zns::filesystem::ofstream ofs{argDir/(varClassName+".pack.name.hpp"),std::ios::binary};
             if (ofs.is_open()) {
@@ -199,12 +209,29 @@ static void update_hpp_files(
                 ofs<<argPackName.size()<<" ;}"<<std::endl;
 
                 auto this_index=type_index.size()+1;
-                type_index[argPackName]=this_index;
+                type_index[varClassName]=this_index;
 
                 ofs<<u8R"(constexpr static unsigned int classOffsetOfPackConcept(){ return )";
                 ofs<<this_index<<" ;}"<<std::endl;
 
                 ofs<<"/**/"<<std::endl<<std::endl;
+            }
+        }
+        /*update class info*/
+        {
+            std::ifstream ifs{i,std::ios::binary};
+            auto &item=type_index.find(varClassName)->second;
+            std::string varLine;
+            while (std::getline(ifs,varLine)) {
+                if (zns::ends_with(varLine,"/*pack:namespace:begin*/"s)) {
+
+                }
+                else {
+                    //PACK_PUBLIC_SUPER_NAME
+                    //PACK_PRIVATE_SUPER_NAME
+                    //PACK_PROTECTED_SUPER_NAME
+                    
+                }
             }
         }
 
